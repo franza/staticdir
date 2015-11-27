@@ -1,0 +1,10 @@
+[package]
+name = "staticdir"
+version = "0.1.0"
+authors = ["franza <nico.franza@gmail.com>"]
+
+[dependencies.iron]
+version = "*"
+
+[dependencies.hyper]
+version = "*"
