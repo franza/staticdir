@@ -6,13 +6,17 @@ use iron::prelude::*;
 
 use hyper::Client;
 use hyper::status;
+use hyper::header::{ ContentType };
+use hyper::mime::{ Mime, TopLevel, SubLevel };
 
 use std::io::Read;
-use staticdir::StaticDir;
+use staticdir::{ StaticDir, AsJson };
+
+use std::ops::Deref;
 
 #[test]
-fn receive_response() {
-    let mut server = Iron::new(StaticDir::new("tests/mount")).http("localhost:3000").unwrap();
+fn handler_provides_json() {
+    let mut server = Iron::new(StaticDir::new("tests/mount", AsJson)).http("localhost:3000").unwrap();
 
     let client = Client::new();
     let mut res = client.get("http://localhost:3000").send().unwrap();
@@ -21,5 +25,7 @@ fn receive_response() {
     server.close().unwrap();
 
     assert_eq!(res.status, status::StatusCode::Ok);
-    assert_eq!(body, "static-dir");
+    let &Mime(ref top, ref sub, _) = res.headers.get::<ContentType>().unwrap().deref();
+    assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
+    assert_eq!(body,  "[{\"is_file\":true,\"is_dir\":false,\"is_symlink\":false,\"path\":\"tests/mount/1.txt\",\"file_name\":\"1.txt\"}]");
 }
