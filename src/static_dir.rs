@@ -3,19 +3,24 @@ use iron::prelude::*;
 use iron::status::Status;
 
 use std::path::{ PathBuf, Path };
-use std::fs::{ metadata, read_dir };
+use std::fs::{ metadata, read_dir, ReadDir };
 use std::io;
 
 use errors::NotADir;
 
-//TODO: add cache, see http://ironframework.io/doc/src/staticfile/static_handler.rs.html#30-34
-pub struct StaticDir {
-    pub root: PathBuf
+pub trait DirToResponse {
+    fn to_res(&self, dir: ReadDir) -> Response;
 }
 
-impl StaticDir {
-    pub fn new<P: AsRef<Path>>(root: P) -> StaticDir {
-        StaticDir{ root: root.as_ref().to_path_buf() }
+//TODO: add cache, see http://ironframework.io/doc/src/staticfile/static_handler.rs.html#30-34
+pub struct StaticDir<T> {
+    pub root: PathBuf,
+    converter: Box<T>,
+}
+
+impl<T> StaticDir<T> {
+    pub fn new<P>(root: P, converter: T) -> StaticDir<T> where P: AsRef<Path> {
+        StaticDir{ root: root.as_ref().to_path_buf(), converter: Box::new(converter) }
     }
 }
 
@@ -34,12 +39,20 @@ fn io_err_to_iron_err(err: io::Error) -> IronError {
     IronError::new(err, status)
 }
 
-impl Handler for StaticDir {
+use std::any::Any;
+
+impl<T> Handler for StaticDir<T> where T: Send + Sync + Any + DirToResponse {
     fn handle(&self, req: &mut Request) -> IronResult<Response> {
         let requested_path = unite_paths(&self.root, req);
         match metadata(&requested_path) {
             Err(err) => Err(io_err_to_iron_err(err)),
-            Ok(ref meta) if meta.is_dir() => Ok(Response::with((Status::Ok, "static-dir"))),
+            Ok(ref meta) if meta.is_dir() =>
+                match read_dir(&requested_path) {
+                    Err(err) => Err(io_err_to_iron_err(err)),
+                    Ok(dir)  => {
+                        Ok(self.converter.to_res(dir))
+                    }
+                },
             Ok(_) => Err(IronError::new(NotADir, Status::BadRequest)),
         }
     }
