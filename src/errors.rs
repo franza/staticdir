@@ -4,6 +4,7 @@ use std::io;
 
 use iron::status::Status;
 use iron::prelude::IronError;
+use rustc_serialize::json;
 
 #[derive(Debug)]
 pub struct NotADir;
@@ -25,4 +26,8 @@ pub fn io_to_iron(err: io::Error) -> IronError {
         _                               => Status::InternalServerError,
     };
     IronError::new(err, status)
+}
+
+pub fn json_to_iron(err: json::EncoderError) -> IronError {
+    IronError::new(err, Status::InternalServerError)
 }

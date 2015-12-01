@@ -8,3 +8,6 @@ version = "*"
 
 [dependencies.hyper]
 version = "*"
+
+[dependencies]
+rustc-serialize = "0.3"

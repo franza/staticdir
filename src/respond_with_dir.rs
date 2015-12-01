@@ -6,22 +6,19 @@ use std::fs::{ ReadDir, DirEntry };
 use std::io::Result as IoResult;
 
 use static_dir::RespondWithDir;
-use errors::io_to_iron;
+
+use rustc_serialize::json;
+use errors;
 
 pub struct AsJson;
 
+#[derive(RustcDecodable, RustcEncodable)]
 pub struct DirEntryState {
     is_file: bool,
     is_dir: bool,
     is_symlink: bool,
     path: String,
     file_name: String,
-}
-
-impl DirEntryState {
-    pub fn to_json(self) -> String {
-        format!("{{\"is_file\":{},\"is_dir\":{},\"is_symlink\":{},\"path\":{:?},\"file_name\":{:?}}}", self.is_file, self.is_dir, self.is_symlink, self.path, self.file_name)
-    }
 }
 
 impl From<DirEntry> for DirEntryState {
@@ -36,20 +33,17 @@ impl From<DirEntry> for DirEntryState {
     }
 }
 
-fn dir_to_json(dir: ReadDir) -> IoResult<String> {
-    let entries = dir
-        .filter_map(|entry| entry.map(DirEntryState::from).ok())
-        .map(|entry| entry.to_json()).collect::<Vec<_>>().join(",");
-    Ok(format!("[{}]", entries))
+fn flatten_read_dir(dir: ReadDir) -> IoResult<Vec<DirEntryState>> {
+    let entries = dir.filter_map(|entry| entry.map(DirEntryState::from).ok()).collect();
+    Ok(entries)
 }
 
 impl RespondWithDir for AsJson {
     fn to_res(&self, dir: ReadDir) -> IronResult<Response> {
         let content_type = "application/json".parse::<Mime>().unwrap();
-        match dir_to_json(dir) {
-            Ok(json) => Ok(Response::with((Status::Ok, content_type, json))),
-            Err(err) => Err(io_to_iron(err)),
-        }
-
+        flatten_read_dir(dir)
+            .map_err(errors::io_to_iron)
+            .and_then(|entries| json::encode(&entries).map_err(errors::json_to_iron))
+            .and_then(|json| Ok(Response::with((Status::Ok, content_type, json))))
     }
 }
