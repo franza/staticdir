@@ -10,7 +10,7 @@ use errors::io_to_iron;
 
 pub struct AsJson;
 
-struct DirEntryState {
+pub struct DirEntryState {
     is_file: bool,
     is_dir: bool,
     is_symlink: bool,
@@ -19,7 +19,7 @@ struct DirEntryState {
 }
 
 impl DirEntryState {
-    fn to_json(self) -> String {
+    pub fn to_json(self) -> String {
         format!("{{\"is_file\":{},\"is_dir\":{},\"is_symlink\":{},\"path\":{:?},\"file_name\":{:?}}}", self.is_file, self.is_dir, self.is_symlink, self.path, self.file_name)
     }
 }

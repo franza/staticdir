@@ -34,14 +34,14 @@ use std::any::Any;
 impl<T> Handler for StaticDir<T> where T: Send + Sync + Any + RespondWithDir {
     fn handle(&self, req: &mut Request) -> IronResult<Response> {
         let requested_path = unite_paths(&self.root, req);
-        match metadata(&requested_path) {
-            Err(err) => Err(io_to_iron(err)),
-            Ok(ref meta) if meta.is_dir() =>
-                match read_dir(&requested_path) {
-                    Err(err) => Err(io_to_iron(err)),
-                    Ok(dir)  => self.converter.to_res(dir),
-                },
-            Ok(_) => Err(IronError::new(NotADir, Status::BadRequest)),
-        }
+        metadata(&requested_path)
+            .map_err(io_to_iron)
+            .and_then(|meta| {
+                match meta.is_dir() {
+                    true  => read_dir(&requested_path).map_err(io_to_iron),
+                    false => Err(IronError::new(NotADir, Status::BadRequest)),
+                }
+            })
+            .and_then(|dir| self.converter.to_res(dir))
     }
 }
