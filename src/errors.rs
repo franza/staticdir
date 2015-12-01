@@ -31,3 +31,24 @@ pub fn io_to_iron(err: io::Error) -> IronError {
 pub fn json_to_iron(err: json::EncoderError) -> IronError {
     IronError::new(err, Status::InternalServerError)
 }
+
+#[derive(Debug)]
+pub struct BadString<'a> {
+    desc: &'a str,
+}
+
+impl<'a> BadString<'a> {
+    pub fn new(desc: &str) -> BadString {
+        BadString{ desc: desc }
+    }
+}
+
+impl<'a> Error for BadString<'a> {
+    fn description(&self) -> &str { &self.desc }
+}
+
+impl<'a> fmt::Display for BadString<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str(self.description())
+    }
+}

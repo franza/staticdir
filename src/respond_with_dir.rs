@@ -3,7 +3,8 @@ use iron::mime::Mime;
 use iron::status::Status;
 
 use std::fs::{ ReadDir, DirEntry };
-use std::io::Result as IoResult;
+use std::io::{ Result as IoResult, Error as IoError };
+use std::io;
 
 use static_dir::RespondWithDir;
 
@@ -21,20 +22,35 @@ pub struct DirEntryState {
     file_name: String,
 }
 
-impl From<DirEntry> for DirEntryState {
-    fn from(entry: DirEntry) -> DirEntryState {
-        DirEntryState{
-            path: entry.path().to_str().expect("Failed to convert path to string").to_string(),
-            file_name: entry.file_name().into_string().expect("Failed to convert filename to string"),
-            is_file: entry.file_type().unwrap().is_file(),
-            is_dir: entry.file_type().unwrap().is_dir(),
-            is_symlink: entry.file_type().unwrap().is_symlink(),
-        }
+// fn bad_str_err(desc: &str) -> IoError {
+//     let err = errors::BadString::new(desc);
+//     io::Error::new(io::ErrorKind::Other, err)
+// }
+
+impl DirEntryState {
+    fn from_entry(entry: DirEntry) -> Result<DirEntryState, IoError> {
+        let bad_path = io::Error::new(io::ErrorKind::Other, errors::BadString::new("Could not read path"));
+        let bad_file_name = io::Error::new(io::ErrorKind::Other, errors::BadString::new("Could not read file name"));
+        // let bad_path = bad_str_err("Cound not read path");
+        // let bad_file_name = bad_str_err("Could not read file name");
+        let path = try!(entry.path().to_str().ok_or(bad_path)).to_string();
+        let file_name = try!(entry.file_name().into_string().or(Err(bad_file_name)));
+        let is_file = try!(entry.file_type()).is_file();
+        let is_dir = try!(entry.file_type()).is_dir();
+        let is_symlink = try!(entry.file_type()).is_symlink();
+        Ok(DirEntryState{
+            path: path,
+            file_name: file_name,
+            is_file: is_file,
+            is_dir: is_dir,
+            is_symlink: is_symlink,
+        })
     }
 }
 
 fn flatten_read_dir(dir: ReadDir) -> IoResult<Vec<DirEntryState>> {
-    let entries = dir.filter_map(|entry| entry.map(DirEntryState::from).ok()).collect();
+    //filter_map will remove all erroneous entries from the collection
+    let entries = dir.filter_map(|entry| entry.and_then(DirEntryState::from_entry).ok()).collect();
     Ok(entries)
 }
 
