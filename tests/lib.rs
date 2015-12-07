@@ -27,5 +27,5 @@ fn handler_provides_json() {
     assert_eq!(res.status, status::StatusCode::Ok);
     let &Mime(ref top, ref sub, _) = res.headers.get::<ContentType>().unwrap().deref();
     assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
-    assert_eq!(body,  "[{\"is_file\":true,\"is_dir\":false,\"is_symlink\":false,\"path\":\"tests/mount/1.txt\",\"file_name\":\"1.txt\"}]");
+    assert_eq!(body,  "[{\"is_file\":true,\"is_dir\":false,\"is_symlink\":false,\"path\":\"tests/mount/1.txt\",\"file_name\":\"1.txt\"},{\"is_file\":false,\"is_dir\":true,\"is_symlink\":false,\"path\":\"tests/mount/nested\",\"file_name\":\"nested\"}]");
 }
