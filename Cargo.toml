@@ -6,8 +6,12 @@ authors = ["franza <nico.franza@gmail.com>"]
 [dependencies.iron]
 version = "*"
 
-[dependencies.hyper]
-version = "*"
-
 [dependencies]
 rustc-serialize = "0.3"
+
+
+[dev-dependencies.hyper]
+version = "*"
+
+[dev-dependencies.mount]
+git = "https://github.com/iron/mount.git"

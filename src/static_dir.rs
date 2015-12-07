@@ -23,6 +23,7 @@ impl<T> StaticDir<T> {
     }
 }
 
+#[inline]
 fn unite_paths<P: AsRef<Path>>(root_path: P, request: &Request) -> PathBuf {
     let mut path = root_path.as_ref().to_path_buf();
     path.extend(&request.url.path);

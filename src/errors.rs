@@ -18,6 +18,7 @@ impl fmt::Display for NotADir {
     }
 }
 
+#[inline]
 pub fn io_to_iron(err: io::Error) -> IronError {
     let status = match err.kind() {
         io::ErrorKind::NotFound         => Status::NotFound,
