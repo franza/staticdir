@@ -3,6 +3,7 @@ extern crate iron;
 extern crate hyper;
 extern crate mount;
 extern crate rustc_serialize;
+extern crate staticfile;
 
 use iron::prelude::*;
 
@@ -19,6 +20,8 @@ use staticdir::{ StaticDir, AsJson, DirEntryState };
 use std::ops::Deref;
 
 use rustc_serialize::json;
+
+use staticfile::Static;
 
 #[test]
 fn handler_provides_json() {
@@ -86,8 +89,98 @@ fn should_work_with_mount() {
     assert_eq!(res.status, status::StatusCode::Ok);
     let &Mime(ref top, ref sub, _) = res.headers.get::<ContentType>().unwrap().deref();
     assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
-    
+
     let entries: Vec<DirEntryState> = json::decode(&body).unwrap();
+    assert_eq!(entries.len(), 2);
+    assert_eq!(entries[0].is_file, true);
+    assert_eq!(entries[0].is_dir, false);
+    assert_eq!(entries[0].is_symlink, false);
+    assert_eq!(entries[0].path, "tests/mount/1.txt");
+    assert_eq!(entries[0].file_name, "1.txt");
+    assert_eq!(entries[1].is_file, false);
+    assert_eq!(entries[1].is_dir, true);
+    assert_eq!(entries[1].is_symlink, false);
+    assert_eq!(entries[1].path, "tests/mount/nested");
+    assert_eq!(entries[1].file_name, "nested");
+}
+
+#[test]
+fn should_work_with_static_file_and_trailing_slash() {
+    let handle_statics = {
+        let root = "tests/mount";
+        let mut chain = Chain::new(Static::new(root));
+        chain.link_after(StaticDir::new(root, AsJson));
+        chain
+    };
+
+    let mut mount = Mount::new();
+    mount.mount("/mnt/", handle_statics);
+    let mut server = Iron::new(mount).http("localhost:3003").unwrap();
+
+    let client = Client::new();
+    let mut dir_res = client.get("http://localhost:3003/mnt/").send().unwrap();
+    let mut dir_entries = String::new();
+    dir_res.read_to_string(&mut dir_entries).unwrap();
+
+    let mut file_res = client.get("http://localhost:3003/mnt/1.txt").send().unwrap();
+    let mut file_body = String::new();
+    file_res.read_to_string(&mut file_body).unwrap();
+    server.close().unwrap();
+
+    assert_eq!(file_res.status, status::StatusCode::Ok);
+    assert_eq!(file_body, "file 1.txt\n");
+
+    assert_eq!(dir_res.status, status::StatusCode::Ok);
+
+    let &Mime(ref top, ref sub, _) = dir_res.headers.get::<ContentType>().unwrap().deref();
+    assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
+
+    let entries: Vec<DirEntryState> = json::decode(&dir_entries).unwrap();
+    assert_eq!(entries.len(), 2);
+    assert_eq!(entries[0].is_file, true);
+    assert_eq!(entries[0].is_dir, false);
+    assert_eq!(entries[0].is_symlink, false);
+    assert_eq!(entries[0].path, "tests/mount/1.txt");
+    assert_eq!(entries[0].file_name, "1.txt");
+    assert_eq!(entries[1].is_file, false);
+    assert_eq!(entries[1].is_dir, true);
+    assert_eq!(entries[1].is_symlink, false);
+    assert_eq!(entries[1].path, "tests/mount/nested");
+    assert_eq!(entries[1].file_name, "nested");
+}
+
+#[test]
+fn should_work_with_static_file_and_no_trailing_slash() {
+    let handle_statics = {
+        let root = "tests/mount";
+        let mut chain = Chain::new(Static::new(root));
+        chain.link_after(StaticDir::new(root, AsJson));
+        chain
+    };
+
+    let mut mount = Mount::new();
+    mount.mount("/mnt/", handle_statics);
+    let mut server = Iron::new(mount).http("localhost:3004").unwrap();
+
+    let client = Client::new();
+    let mut dir_res = client.get("http://localhost:3004/mnt").send().unwrap();
+    let mut dir_entries = String::new();
+    dir_res.read_to_string(&mut dir_entries).unwrap();
+
+    let mut file_res = client.get("http://localhost:3004/mnt/1.txt").send().unwrap();
+    let mut file_body = String::new();
+    file_res.read_to_string(&mut file_body).unwrap();
+    server.close().unwrap();
+
+    assert_eq!(file_res.status, status::StatusCode::Ok);
+    assert_eq!(file_body, "file 1.txt\n");
+
+    assert_eq!(dir_res.status, status::StatusCode::Ok);
+
+    let &Mime(ref top, ref sub, _) = dir_res.headers.get::<ContentType>().unwrap().deref();
+    assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
+
+    let entries: Vec<DirEntryState> = json::decode(&dir_entries).unwrap();
     assert_eq!(entries.len(), 2);
     assert_eq!(entries[0].is_file, true);
     assert_eq!(entries[0].is_dir, false);

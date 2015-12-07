@@ -15,3 +15,6 @@ version = "*"
 
 [dev-dependencies.mount]
 git = "https://github.com/iron/mount.git"
+
+[dev-dependencies]
+staticfile = "*"
