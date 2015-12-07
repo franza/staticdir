@@ -37,10 +37,10 @@ fn handler_provides_json() {
 fn should_work_with_mount() {
     let mut mount = Mount::new();
     mount.mount("/mnt/", StaticDir::new("tests/mount", AsJson));
-    let mut server = Iron::new(mount).http("localhost:3000").unwrap();
+    let mut server = Iron::new(mount).http("localhost:3001").unwrap();
 
     let client = Client::new();
-    let mut res = client.get("http://localhost:3000/mnt").send().unwrap();
+    let mut res = client.get("http://localhost:3001/mnt").send().unwrap();
     let mut body = String::new();
     res.read_to_string(&mut body).unwrap();
     server.close().unwrap();
