@@ -39,7 +39,7 @@ impl<T> StaticDir<T> where T: Send + Sync + Any + ResponseStrategy {
 }
 
 #[inline]
-fn unite_paths<P>(root_path: P, request: &Request) -> PathBuf where P: AsRef<Path> {
+fn extend_req_path<P>(request: &Request, root_path: P) -> PathBuf where P: AsRef<Path> {
     let mut path = root_path.as_ref().to_path_buf();
     path.extend(&request.url.path);
     path
@@ -47,7 +47,7 @@ fn unite_paths<P>(root_path: P, request: &Request) -> PathBuf where P: AsRef<Pat
 
 impl<T> Handler for StaticDir<T> where T: Send + Sync + Any + ResponseStrategy {
     fn handle(&self, req: &mut Request) -> IronResult<Response> {
-        let requested_path = unite_paths(&self.root, req);
+        let requested_path = extend_req_path(req, &self.root);
         self.respond_from_path(&requested_path)
     }
 }
@@ -58,7 +58,7 @@ impl<T>  AfterMiddleware for StaticDir<T> where T: Send + Sync + Any + ResponseS
             //when chained with staticfile::Static MovedPermanently may mean that it's a dir, not a file.
             //Also in this case there's no trailing slash, but handling only first case
             Some(Status::MovedPermanently) => {
-                let requested_path = unite_paths(&self.root, req);
+                let requested_path = extend_req_path(req, &self.root);
                 self.respond_from_path(&requested_path)
             },
             _ => Ok(res),
@@ -69,7 +69,7 @@ impl<T>  AfterMiddleware for StaticDir<T> where T: Send + Sync + Any + ResponseS
         match err.response.status {
             //when chained with staticfile::Static NotFound may mean that it's a dir, not a file
             Some(Status::NotFound) => {
-                let requested_path = unite_paths(&self.root, req);
+                let requested_path = extend_req_path(req, &self.root);
                 self.respond_from_path(&requested_path)
             },
             _ => Err(err),
