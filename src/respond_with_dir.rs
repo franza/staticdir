@@ -5,7 +5,7 @@ use iron::status::Status;
 use std::fs::{ ReadDir, DirEntry };
 use std::io::{ Error as IoError, Result as IoResult, ErrorKind };
 
-use static_dir::RespondWithDir;
+use static_dir::ResponseStrategy;
 
 use rustc_serialize::json;
 use errors;
@@ -59,8 +59,8 @@ impl DirEntryState {
     }
 }
 
-impl RespondWithDir for AsJson {
-    fn to_res(&self, dir: ReadDir) -> IronResult<Response> {
+impl ResponseStrategy for AsJson {
+    fn make_response(&self, dir: ReadDir) -> IronResult<Response> {
         let entries: Vec<_> = dir
             .filter_map(|entry| entry.and_then(DirEntryState::from_entry).ok())
             .collect();

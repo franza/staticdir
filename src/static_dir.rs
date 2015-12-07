@@ -7,19 +7,19 @@ use std::fs::{ metadata, read_dir, ReadDir };
 
 use errors::{ NotADir, io_to_iron };
 
-pub trait RespondWithDir {
-    fn to_res(&self, dir: ReadDir) -> IronResult<Response>;
+pub trait ResponseStrategy {
+    fn make_response(&self, dir: ReadDir) -> IronResult<Response>;
 }
 
 //TODO: add cache, see http://ironframework.io/doc/src/staticfile/static_handler.rs.html#30-34
 pub struct StaticDir<T> {
     pub root: PathBuf,
-    converter: Box<T>,
+    behavior: Box<T>,
 }
 
 impl<T> StaticDir<T> {
-    pub fn new<P>(root: P, converter: T) -> StaticDir<T> where P: AsRef<Path> {
-        StaticDir{ root: root.as_ref().to_path_buf(), converter: Box::new(converter) }
+    pub fn new<P>(root: P, behavior: T) -> StaticDir<T> where P: AsRef<Path> {
+        StaticDir{ root: root.as_ref().to_path_buf(), behavior: Box::new(behavior) }
     }
 }
 
@@ -32,7 +32,7 @@ fn unite_paths<P: AsRef<Path>>(root_path: P, request: &Request) -> PathBuf {
 
 use std::any::Any;
 
-impl<T> Handler for StaticDir<T> where T: Send + Sync + Any + RespondWithDir {
+impl<T> Handler for StaticDir<T> where T: Send + Sync + Any + ResponseStrategy {
     fn handle(&self, req: &mut Request) -> IronResult<Response> {
         let requested_path = unite_paths(&self.root, req);
         metadata(&requested_path)
@@ -43,6 +43,6 @@ impl<T> Handler for StaticDir<T> where T: Send + Sync + Any + RespondWithDir {
                     false => Err(IronError::new(NotADir, Status::BadRequest)),
                 }
             })
-            .and_then(|dir| self.converter.to_res(dir))
+            .and_then(|dir| self.behavior.make_response(dir))
     }
 }
