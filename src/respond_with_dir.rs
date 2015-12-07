@@ -14,11 +14,11 @@ pub struct AsJson;
 
 #[derive(RustcDecodable, RustcEncodable)]
 pub struct DirEntryState {
-    is_file: bool,
-    is_dir: bool,
-    is_symlink: bool,
-    path: String,
-    file_name: String,
+    pub is_file: bool,
+    pub is_dir: bool,
+    pub is_symlink: bool,
+    pub path: String,
+    pub file_name: String,
 }
 
 fn bad_str_err(desc: &str) -> IoError {
