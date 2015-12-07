@@ -4,7 +4,6 @@ use std::io;
 
 use iron::status::Status;
 use iron::prelude::IronError;
-use rustc_serialize::json;
 
 #[derive(Debug)]
 pub struct NotADir;
@@ -28,26 +27,22 @@ pub fn io_to_iron(err: io::Error) -> IronError {
     IronError::new(err, status)
 }
 
-pub fn json_to_iron(err: json::EncoderError) -> IronError {
-    IronError::new(err, Status::InternalServerError)
-}
-
 #[derive(Debug)]
-pub struct BadString<'a> {
-    desc: &'a str,
+pub struct BadString {
+    desc: String,
 }
 
-impl<'a> BadString<'a> {
+impl BadString {
     pub fn new(desc: &str) -> BadString {
-        BadString{ desc: desc }
+        BadString{ desc: desc.into() }
     }
 }
 
-impl<'a> Error for BadString<'a> {
+impl Error for BadString {
     fn description(&self) -> &str { &self.desc }
 }
 
-impl<'a> fmt::Display for BadString<'a> {
+impl fmt::Display for BadString {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.write_str(self.description())
     }
