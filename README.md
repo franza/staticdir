@@ -3,7 +3,7 @@ Serving directory contents for [Iron](https://github.com/iron/iron) web-framewor
 
 ## Purpose
 
-Provides only the list of files and directories in a mounted folder. To respond with files use [staticfile](https://github.com/iron/staticfile) along with this one. See examples.
+Provides the list of files and directories in a mounted folder. To respond with files use [staticfile](https://github.com/iron/staticfile) along with this one. See examples.
 
 ## Example
 
@@ -37,25 +37,21 @@ Visiting `http://localhost:3000/static/` (no trailing slashes supported too) pro
 ```json
 [
   {
-    "is_file":true,
-    "is_dir":false,
-    "is_symlink":false,
+    "file_type":"File",
     "path":"tests/mount/1.txt",
     "file_name":"1.txt"
   },
   {
-    "is_file":false,
-    "is_dir":true,
-    "is_symlink":false,
+    "file_type":"Dir",
     "path":"tests/mount/nested",
     "file_name":"nested"
-    }
+  }
 ]
 ```
 It can also be used without other libs, just with good ol' Iron:
 
 ```rust
-fn handler_provides_json() {
+fn main() {
     let mut server = Iron::new(StaticDir::new("tests/mount", AsJson)).http("localhost:3000").unwrap();
 }
 ```
@@ -70,7 +66,7 @@ This line
 StaticDir::new(root, AsJson)
 ```
 
-says that the contents will be delivered as JSON. Currently, `AsJson` is the only  supported response strategy but you can implement `ResponseStrategy` trait to provide something different in an ordinary Iron response:
+says that the contents will be delivered as JSON. Currently, `AsJson` is the only supported response strategy but you can implement `ResponseStrategy` trait to provide something different in an ordinary Iron response:
 
 ```rust
 struct Banana;

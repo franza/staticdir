@@ -15,12 +15,12 @@ pub trait ResponseStrategy {
 //TODO: add cache, see http://ironframework.io/doc/src/staticfile/static_handler.rs.html#30-34
 pub struct StaticDir<T> {
     pub root: PathBuf,
-    behavior: Box<T>,
+    response_strategy: Box<T>,
 }
 
 impl<T> StaticDir<T> {
-    pub fn new<P>(root: P, behavior: T) -> StaticDir<T> where P: AsRef<Path> {
-        StaticDir{ root: root.as_ref().to_path_buf(), behavior: Box::new(behavior) }
+    pub fn new<P>(root: P, response_strategy: T) -> StaticDir<T> where P: AsRef<Path> {
+        StaticDir{ root: root.as_ref().to_path_buf(), response_strategy: Box::new(response_strategy) }
     }
 }
 
@@ -34,7 +34,7 @@ impl<T> StaticDir<T> where T: Send + Sync + Any + ResponseStrategy {
                     false => Err(IronError::new(NotADir, Status::BadRequest)),
                 }
             })
-            .and_then(|dir| self.behavior.make_response(dir))
+            .and_then(|dir| self.response_strategy.make_response(dir))
     }
 }
 

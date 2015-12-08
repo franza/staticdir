@@ -15,7 +15,8 @@ use hyper::header::{ ContentType };
 use hyper::mime::{ Mime, TopLevel, SubLevel };
 
 use std::io::Read;
-use staticdir::{ StaticDir, AsJson, DirEntryState };
+use staticdir::{ StaticDir, AsJson };
+use staticdir::respond_with_dir::{ DirEntryState, FileType };
 
 use std::ops::Deref;
 
@@ -39,14 +40,10 @@ fn handler_provides_json() {
 
     let entries: Vec<DirEntryState> = json::decode(&body).unwrap();
     assert_eq!(entries.len(), 2);
-    assert_eq!(entries[0].is_file, true);
-    assert_eq!(entries[0].is_dir, false);
-    assert_eq!(entries[0].is_symlink, false);
+    assert_eq!(entries[0].file_type, FileType::File);
     assert_eq!(entries[0].path, "tests/mount/1.txt");
     assert_eq!(entries[0].file_name, "1.txt");
-    assert_eq!(entries[1].is_file, false);
-    assert_eq!(entries[1].is_dir, true);
-    assert_eq!(entries[1].is_symlink, false);
+    assert_eq!(entries[1].file_type, FileType::Dir);
     assert_eq!(entries[1].path, "tests/mount/nested");
     assert_eq!(entries[1].file_name, "nested");
 }
@@ -67,9 +64,7 @@ fn should_see_nested_files() {
 
     let entries: Vec<DirEntryState> = json::decode(&body).unwrap();
     assert_eq!(entries.len(), 1);
-    assert_eq!(entries[0].is_file, true);
-    assert_eq!(entries[0].is_dir, false);
-    assert_eq!(entries[0].is_symlink, false);
+    assert_eq!(entries[0].file_type, FileType::File);
     assert_eq!(entries[0].path, "tests/mount/nested/2.txt");
     assert_eq!(entries[0].file_name, "2.txt");
 }
@@ -92,14 +87,10 @@ fn should_work_with_mount() {
 
     let entries: Vec<DirEntryState> = json::decode(&body).unwrap();
     assert_eq!(entries.len(), 2);
-    assert_eq!(entries[0].is_file, true);
-    assert_eq!(entries[0].is_dir, false);
-    assert_eq!(entries[0].is_symlink, false);
+    assert_eq!(entries[0].file_type, FileType::File);
     assert_eq!(entries[0].path, "tests/mount/1.txt");
     assert_eq!(entries[0].file_name, "1.txt");
-    assert_eq!(entries[1].is_file, false);
-    assert_eq!(entries[1].is_dir, true);
-    assert_eq!(entries[1].is_symlink, false);
+    assert_eq!(entries[1].file_type, FileType::Dir);
     assert_eq!(entries[1].path, "tests/mount/nested");
     assert_eq!(entries[1].file_name, "nested");
 }
@@ -137,14 +128,10 @@ fn should_work_with_static_file_and_trailing_slash() {
 
     let entries: Vec<DirEntryState> = json::decode(&dir_entries).unwrap();
     assert_eq!(entries.len(), 2);
-    assert_eq!(entries[0].is_file, true);
-    assert_eq!(entries[0].is_dir, false);
-    assert_eq!(entries[0].is_symlink, false);
+    assert_eq!(entries[0].file_type, FileType::File);
     assert_eq!(entries[0].path, "tests/mount/1.txt");
     assert_eq!(entries[0].file_name, "1.txt");
-    assert_eq!(entries[1].is_file, false);
-    assert_eq!(entries[1].is_dir, true);
-    assert_eq!(entries[1].is_symlink, false);
+    assert_eq!(entries[1].file_type, FileType::Dir);
     assert_eq!(entries[1].path, "tests/mount/nested");
     assert_eq!(entries[1].file_name, "nested");
 }
@@ -182,14 +169,10 @@ fn should_work_with_static_file_and_no_trailing_slash() {
 
     let entries: Vec<DirEntryState> = json::decode(&dir_entries).unwrap();
     assert_eq!(entries.len(), 2);
-    assert_eq!(entries[0].is_file, true);
-    assert_eq!(entries[0].is_dir, false);
-    assert_eq!(entries[0].is_symlink, false);
+    assert_eq!(entries[0].file_type, FileType::File);
     assert_eq!(entries[0].path, "tests/mount/1.txt");
     assert_eq!(entries[0].file_name, "1.txt");
-    assert_eq!(entries[1].is_file, false);
-    assert_eq!(entries[1].is_dir, true);
-    assert_eq!(entries[1].is_symlink, false);
+    assert_eq!(entries[1].file_type, FileType::Dir);
     assert_eq!(entries[1].path, "tests/mount/nested");
     assert_eq!(entries[1].file_name, "nested");
 }

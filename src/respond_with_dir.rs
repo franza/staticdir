@@ -14,11 +14,14 @@ pub struct AsJson;
 
 #[derive(RustcDecodable, RustcEncodable)]
 pub struct DirEntryState {
-    pub is_file: bool,
-    pub is_dir: bool,
-    pub is_symlink: bool,
+    pub file_type: FileType,
     pub path: String,
     pub file_name: String,
+}
+
+#[derive(RustcDecodable, RustcEncodable, PartialEq, Eq, Debug)]
+pub enum FileType {
+    File, Dir, Symlink
 }
 
 fn bad_str_err(desc: &str) -> IoError {
@@ -45,17 +48,15 @@ impl DirEntryState {
     fn from_entry(entry: DirEntry) -> Result<DirEntryState, IoError> {
         let path =       try!(file_path_as_string(&entry));
         let file_name =  try!(file_name_as_string(&entry));
-        let is_file =    try!(entry.file_type()).is_file();
-        let is_dir =     try!(entry.file_type()).is_dir();
-        let is_symlink = try!(entry.file_type()).is_symlink();
 
-        Ok(DirEntryState{
-            path: path,
-            file_name: file_name,
-            is_file: is_file,
-            is_dir: is_dir,
-            is_symlink: is_symlink,
-        })
+        let file_type = match try!(entry.file_type()) {
+            t if t.is_file()    => FileType::File,
+            t if t.is_dir()     => FileType::Dir,
+            t if t.is_symlink() => FileType::Symlink,
+            _                   => unreachable!(),
+        };
+
+        Ok(DirEntryState{ path: path, file_name: file_name, file_type: file_type, })
     }
 }
 
