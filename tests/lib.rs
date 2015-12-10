@@ -24,6 +24,26 @@ use rustc_serialize::json;
 
 use staticfile::Static;
 
+fn assert_top_dir(entries: Vec<DirEntryState>) {
+    assert_eq!(entries.len(), 4);
+
+    assert_eq!(entries[0].file_name, "по-русски");
+    assert_eq!(entries[0].path, "tests/mount/по-русски");
+    assert_eq!(entries[0].file_type, FileType::Dir);
+
+    assert_eq!(entries[1].file_name, "1.txt");
+    assert_eq!(entries[1].path, "tests/mount/1.txt");
+    assert_eq!(entries[1].file_type, FileType::File);
+
+    assert_eq!(entries[2].file_name, "nested");
+    assert_eq!(entries[2].path, "tests/mount/nested");
+    assert_eq!(entries[2].file_type, FileType::Dir);
+
+    assert_eq!(entries[3].file_name, "has space");
+    assert_eq!(entries[3].path, "tests/mount/has space");
+    assert_eq!(entries[3].file_type, FileType::Dir);
+}
+
 #[test]
 fn handler_provides_json() {
     let mut server = Iron::new(StaticDir::new("tests/mount", AsJson)).http("localhost:3000").unwrap();
@@ -39,13 +59,7 @@ fn handler_provides_json() {
     assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
 
     let entries: Vec<DirEntryState> = json::decode(&body).unwrap();
-    assert_eq!(entries.len(), 2);
-    assert_eq!(entries[0].file_type, FileType::File);
-    assert_eq!(entries[0].path, "tests/mount/1.txt");
-    assert_eq!(entries[0].file_name, "1.txt");
-    assert_eq!(entries[1].file_type, FileType::Dir);
-    assert_eq!(entries[1].path, "tests/mount/nested");
-    assert_eq!(entries[1].file_name, "nested");
+    assert_top_dir(entries);
 }
 
 #[test]
@@ -86,13 +100,7 @@ fn should_work_with_mount() {
     assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
 
     let entries: Vec<DirEntryState> = json::decode(&body).unwrap();
-    assert_eq!(entries.len(), 2);
-    assert_eq!(entries[0].file_type, FileType::File);
-    assert_eq!(entries[0].path, "tests/mount/1.txt");
-    assert_eq!(entries[0].file_name, "1.txt");
-    assert_eq!(entries[1].file_type, FileType::Dir);
-    assert_eq!(entries[1].path, "tests/mount/nested");
-    assert_eq!(entries[1].file_name, "nested");
+    assert_top_dir(entries);
 }
 
 #[test]
@@ -127,13 +135,7 @@ fn should_work_with_static_file_and_trailing_slash() {
     assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
 
     let entries: Vec<DirEntryState> = json::decode(&dir_entries).unwrap();
-    assert_eq!(entries.len(), 2);
-    assert_eq!(entries[0].file_type, FileType::File);
-    assert_eq!(entries[0].path, "tests/mount/1.txt");
-    assert_eq!(entries[0].file_name, "1.txt");
-    assert_eq!(entries[1].file_type, FileType::Dir);
-    assert_eq!(entries[1].path, "tests/mount/nested");
-    assert_eq!(entries[1].file_name, "nested");
+    assert_top_dir(entries);
 }
 
 #[test]
@@ -168,11 +170,5 @@ fn should_work_with_static_file_and_no_trailing_slash() {
     assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
 
     let entries: Vec<DirEntryState> = json::decode(&dir_entries).unwrap();
-    assert_eq!(entries.len(), 2);
-    assert_eq!(entries[0].file_type, FileType::File);
-    assert_eq!(entries[0].path, "tests/mount/1.txt");
-    assert_eq!(entries[0].file_name, "1.txt");
-    assert_eq!(entries[1].file_type, FileType::Dir);
-    assert_eq!(entries[1].path, "tests/mount/nested");
-    assert_eq!(entries[1].file_name, "nested");
+    assert_top_dir(entries);
 }

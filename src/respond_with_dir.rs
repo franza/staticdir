@@ -68,7 +68,7 @@ impl ResponseStrategy for AsJson {
 
         match json::encode(&entries) {
             Ok(string) => {
-                let content_type = "application/json".parse::<Mime>().unwrap();
+                let content_type = "application/json; charset=utf-8".parse::<Mime>().unwrap();
                 Ok(Response::with((Status::Ok, content_type, string)))
             },
             Err(err)   => Err(IronError::new(err, Status::InternalServerError)),
