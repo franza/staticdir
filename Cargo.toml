@@ -9,6 +9,9 @@ version = "*"
 [dependencies]
 rustc-serialize = "0.3"
 
+[dependencies.url]
+git = "https://github.com/servo/rust-url"
+
 
 [dev-dependencies.hyper]
 version = "*"

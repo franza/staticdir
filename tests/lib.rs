@@ -63,11 +63,29 @@ fn handler_provides_json() {
 }
 
 #[test]
-fn should_see_nested_files() {
+fn should_work_if_dir_has_funky_chars() {
     let mut server = Iron::new(StaticDir::new("tests/mount", AsJson)).http("localhost:3001").unwrap();
 
     let client = Client::new();
-    let mut res = client.get("http://localhost:3001/nested").send().unwrap();
+    let mut res = client.get("http://localhost:3001/has space").send().unwrap();
+    let mut body = String::new();
+    res.read_to_string(&mut body).unwrap();
+    server.close().unwrap();
+
+    assert_eq!(res.status, status::StatusCode::Ok);
+    let &Mime(ref top, ref sub, _) = res.headers.get::<ContentType>().unwrap().deref();
+    assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
+
+    let entries: Vec<DirEntryState> = json::decode(&body).unwrap();
+    assert_eq!(entries.len(), 0);
+}
+
+#[test]
+fn should_see_nested_files() {
+    let mut server = Iron::new(StaticDir::new("tests/mount", AsJson)).http("localhost:3002").unwrap();
+
+    let client = Client::new();
+    let mut res = client.get("http://localhost:3002/nested").send().unwrap();
     let mut body = String::new();
     res.read_to_string(&mut body).unwrap();
     server.close().unwrap();
@@ -87,10 +105,10 @@ fn should_see_nested_files() {
 fn should_work_with_mount() {
     let mut mount = Mount::new();
     mount.mount("/mnt/", StaticDir::new("tests/mount", AsJson));
-    let mut server = Iron::new(mount).http("localhost:3002").unwrap();
+    let mut server = Iron::new(mount).http("localhost:3003").unwrap();
 
     let client = Client::new();
-    let mut res = client.get("http://localhost:3002/mnt").send().unwrap();
+    let mut res = client.get("http://localhost:3003/mnt").send().unwrap();
     let mut body = String::new();
     res.read_to_string(&mut body).unwrap();
     server.close().unwrap();
@@ -114,14 +132,14 @@ fn should_work_with_static_file_and_trailing_slash() {
 
     let mut mount = Mount::new();
     mount.mount("/mnt/", handle_statics);
-    let mut server = Iron::new(mount).http("localhost:3003").unwrap();
+    let mut server = Iron::new(mount).http("localhost:3004").unwrap();
 
     let client = Client::new();
-    let mut dir_res = client.get("http://localhost:3003/mnt/").send().unwrap();
+    let mut dir_res = client.get("http://localhost:3004/mnt/").send().unwrap();
     let mut dir_entries = String::new();
     dir_res.read_to_string(&mut dir_entries).unwrap();
 
-    let mut file_res = client.get("http://localhost:3003/mnt/1.txt").send().unwrap();
+    let mut file_res = client.get("http://localhost:3004/mnt/1.txt").send().unwrap();
     let mut file_body = String::new();
     file_res.read_to_string(&mut file_body).unwrap();
     server.close().unwrap();
@@ -149,14 +167,14 @@ fn should_work_with_static_file_and_no_trailing_slash() {
 
     let mut mount = Mount::new();
     mount.mount("/mnt/", handle_statics);
-    let mut server = Iron::new(mount).http("localhost:3004").unwrap();
+    let mut server = Iron::new(mount).http("localhost:3005").unwrap();
 
     let client = Client::new();
-    let mut dir_res = client.get("http://localhost:3004/mnt").send().unwrap();
+    let mut dir_res = client.get("http://localhost:3005/mnt").send().unwrap();
     let mut dir_entries = String::new();
     dir_res.read_to_string(&mut dir_entries).unwrap();
 
-    let mut file_res = client.get("http://localhost:3004/mnt/1.txt").send().unwrap();
+    let mut file_res = client.get("http://localhost:3005/mnt/1.txt").send().unwrap();
     let mut file_body = String::new();
     file_res.read_to_string(&mut file_body).unwrap();
     server.close().unwrap();

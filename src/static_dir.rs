@@ -8,6 +8,8 @@ use std::any::Any;
 
 use errors::{ NotADir, io_to_iron };
 
+use url::percent_encoding::percent_decode;
+
 pub trait ResponseStrategy {
     fn make_response(&self, dir: ReadDir) -> IronResult<Response>;
 }
@@ -41,7 +43,8 @@ impl<T> StaticDir<T> where T: Send + Sync + Any + ResponseStrategy {
 #[inline]
 fn extend_req_path<P>(request: &Request, root_path: P) -> PathBuf where P: AsRef<Path> {
     let mut path = root_path.as_ref().to_path_buf();
-    path.extend(&request.url.path);
+    let decoded_req_path = request.url.path.iter().map(|part| String::from_utf8(percent_decode(part.as_bytes())).unwrap());
+    path.extend(decoded_req_path);
     path
 }
 
