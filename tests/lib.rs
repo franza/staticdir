@@ -28,19 +28,15 @@ fn assert_top_dir(entries: Vec<DirEntryState>) {
     assert_eq!(entries.len(), 4);
 
     assert_eq!(entries[0].file_name, "по-русски");
-    assert_eq!(entries[0].path, "tests/mount/по-русски");
     assert_eq!(entries[0].file_type, FileType::Dir);
 
     assert_eq!(entries[1].file_name, "1.txt");
-    assert_eq!(entries[1].path, "tests/mount/1.txt");
     assert_eq!(entries[1].file_type, FileType::File);
 
     assert_eq!(entries[2].file_name, "nested");
-    assert_eq!(entries[2].path, "tests/mount/nested");
     assert_eq!(entries[2].file_type, FileType::Dir);
 
     assert_eq!(entries[3].file_name, "has space");
-    assert_eq!(entries[3].path, "tests/mount/has space");
     assert_eq!(entries[3].file_type, FileType::Dir);
 }
 
@@ -97,7 +93,6 @@ fn should_see_nested_files() {
     let entries: Vec<DirEntryState> = json::decode(&body).unwrap();
     assert_eq!(entries.len(), 1);
     assert_eq!(entries[0].file_type, FileType::File);
-    assert_eq!(entries[0].path, "tests/mount/nested/2.txt");
     assert_eq!(entries[0].file_name, "2.txt");
 }
 

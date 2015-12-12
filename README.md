@@ -38,12 +38,10 @@ Visiting `http://localhost:3000/static/` (no trailing slashes supported too) pro
 [
   {
     "file_type":"File",
-    "path":"tests/mount/1.txt",
     "file_name":"1.txt"
   },
   {
     "file_type":"Dir",
-    "path":"tests/mount/nested",
     "file_name":"nested"
   }
 ]

@@ -15,7 +15,6 @@ pub struct AsJson;
 #[derive(RustcDecodable, RustcEncodable)]
 pub struct DirEntryState {
     pub file_type: FileType,
-    pub path: String,
     pub file_name: String,
 }
 
@@ -36,17 +35,8 @@ fn file_name_as_string(entry: &DirEntry) -> IoResult<String> {
         .or_else(|_| Err(bad_str_err("Could not read file name")))
 }
 
-fn file_path_as_string(entry: &DirEntry) -> IoResult<String> {
-    entry
-        .path()
-        .to_str()
-        .ok_or_else(|| bad_str_err("Could not read path"))
-        .map(|s| s.into())
-}
-
 impl DirEntryState {
     fn from_entry(entry: DirEntry) -> Result<DirEntryState, IoError> {
-        let path =       try!(file_path_as_string(&entry));
         let file_name =  try!(file_name_as_string(&entry));
 
         let file_type = match try!(entry.file_type()) {
@@ -56,7 +46,7 @@ impl DirEntryState {
             _                   => unreachable!(),
         };
 
-        Ok(DirEntryState{ path: path, file_name: file_name, file_type: file_type, })
+        Ok(DirEntryState{ file_name: file_name, file_type: file_type, })
     }
 }
 
