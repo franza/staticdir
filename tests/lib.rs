@@ -30,22 +30,28 @@ fn assert_top_dir(entries: Vec<DirEntryState>) {
     assert_eq!(entries[0].file_name, "по-русски");
     assert_eq!(entries[0].file_type, FileType::Dir);
     assert!(entries[0].size > 0);
-    assert!(entries[0].mtime > 0);
+    assert!(entries[0].last_modification_time > 0);
+    assert!(entries[0].last_access_time > 0);
+    //No tests for creation time since it's platform-specific
+    // assert!(entries[0].creation_time.is_none());
 
     assert_eq!(entries[1].file_name, "1.txt");
     assert_eq!(entries[1].file_type, FileType::File);
     assert!(entries[1].size > 0);
-    assert!(entries[1].mtime > 0);
+    assert!(entries[1].last_modification_time > 0);
+    assert!(entries[1].last_access_time > 0);
 
     assert_eq!(entries[2].file_name, "nested");
     assert_eq!(entries[2].file_type, FileType::Dir);
     assert!(entries[2].size > 0);
-    assert!(entries[2].mtime > 0);
+    assert!(entries[2].last_modification_time > 0);
+    assert!(entries[2].last_access_time > 0);
 
     assert_eq!(entries[3].file_name, "has space");
     assert_eq!(entries[3].file_type, FileType::Dir);
     assert!(entries[3].size > 0);
-    assert!(entries[3].mtime > 0);
+    assert!(entries[3].last_modification_time > 0);
+    assert!(entries[3].last_access_time > 0);
 }
 
 #[test]

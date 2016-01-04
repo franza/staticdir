@@ -4,12 +4,13 @@ use iron::status::Status;
 
 use std::fs::{ ReadDir, DirEntry };
 use std::io::{ Error as IoError, Result as IoResult, ErrorKind };
-use std::os::unix::fs::MetadataExt;
 
 use static_dir::ResponseStrategy;
 
 use rustc_serialize::json;
 use errors;
+
+use filetime::FileTime;
 
 pub struct AsJson;
 
@@ -18,7 +19,9 @@ pub struct DirEntryState {
     pub file_type: FileType,
     pub file_name: String,
     pub size: u64,
-    pub mtime: i64,
+    pub creation_time: Option<u64>,
+    pub last_modification_time: u64,
+    pub last_access_time: u64,
 }
 
 #[derive(RustcDecodable, RustcEncodable, PartialEq, Eq, Debug)]
@@ -35,7 +38,7 @@ fn file_name_as_string(entry: &DirEntry) -> IoResult<String> {
     entry
         .file_name()
         .into_string()
-        .or_else(|_| Err(bad_str_err("Could not read file name")))
+        .or(Err(bad_str_err("Could not read file name")))
 }
 
 impl DirEntryState {
@@ -50,14 +53,17 @@ impl DirEntryState {
         };
 
         let metadata = try!(entry.metadata());
-        let size = metadata.len();
-        let mtime = metadata.mtime();
+        let last_modification_time = FileTime::from_last_modification_time(&metadata).seconds_relative_to_1970();
+        let last_access_time = FileTime::from_last_access_time(&metadata).seconds_relative_to_1970();
+        let creation_time = FileTime::from_creation_time(&metadata).map(|time| time.seconds_relative_to_1970());
 
         Ok(DirEntryState{
             file_name: file_name,
             file_type: file_type,
-            size: size,
-            mtime: mtime,
+            size: metadata.len(),
+            creation_time: creation_time,
+            last_modification_time: last_modification_time,
+            last_access_time: last_access_time,
         })
     }
 }

@@ -9,6 +9,7 @@ keywords = ["iron", "web", "http", "file", "static", "folder", "dir", "directory
 rustc-serialize = "0.3"
 iron = "0.2"
 url = { git = "https://github.com/servo/rust-url" }
+filetime = "0.1.9"
 
 [dev-dependencies]
 staticfile = "*"
