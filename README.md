@@ -54,7 +54,7 @@ This code will return you
 
 ## Customize behavior
 
-If you require some additional fields in JSON or need an HTML page, there's `ResponseStrategy` trait you can implement.
+You can customize the response using `ResponseStrategy` trait. Suppose you need an HTML response instead of JSON:
 
 ```rust
 extern crate staticdir;
@@ -68,18 +68,19 @@ use iron::mime::Mime;
 
 struct AsHtml;
 
+fn build_html(dir: ReadDir) -> String {
+    let mut html = String::new();
+    for entry in dir {
+        let entry = entry.unwrap();
+        html = format!("{}<li>{}</li>", html, entry.file_name().into_string().unwrap());
+    }
+    format!("<ul>{}</ul>", html)
+}
+
 impl ResponseStrategy for AsHtml {
     fn make_response(&self, dir: ReadDir) -> IronResult<Response> {
-        let mut html = String::new();
-
-        for entry in dir {
-            let entry = entry.unwrap();
-            html = format!("{}<li>{}</li>", html, entry.file_name().into_string().unwrap());
-        }
-
-        html = format!("<ul>{}</ul>", html);
+        let html = build_html(dir);
         let content_type = "text/html; charset=utf-8".parse::<Mime>().unwrap();
-
         Ok(Response::with((Status::Ok, html, content_type)))
     }
 }
