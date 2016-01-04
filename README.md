@@ -38,11 +38,15 @@ Visiting `http://localhost:3000/static/` (no trailing slashes supported too) pro
 [
   {
     "file_type":"File",
-    "file_name":"1.txt"
+    "file_name":"1.txt",
+    "size": 11,
+    "mtime": 1451932900
   },
   {
     "file_type":"Dir",
-    "file_name":"nested"
+    "file_name":"nested",
+    "size": 4096,
+    "mtime": 1449779879
   }
 ]
 ```
