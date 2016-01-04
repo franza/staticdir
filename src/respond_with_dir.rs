@@ -4,6 +4,7 @@ use iron::status::Status;
 
 use std::fs::{ ReadDir, DirEntry };
 use std::io::{ Error as IoError, Result as IoResult, ErrorKind };
+use std::os::unix::fs::MetadataExt;
 
 use static_dir::ResponseStrategy;
 
@@ -16,6 +17,8 @@ pub struct AsJson;
 pub struct DirEntryState {
     pub file_type: FileType,
     pub file_name: String,
+    pub size: u64,
+    pub mtime: i64,
 }
 
 #[derive(RustcDecodable, RustcEncodable, PartialEq, Eq, Debug)]
@@ -46,7 +49,16 @@ impl DirEntryState {
             _                   => unreachable!(),
         };
 
-        Ok(DirEntryState{ file_name: file_name, file_type: file_type, })
+        let metadata = try!(entry.metadata());
+        let size = metadata.len();
+        let mtime = metadata.mtime();
+
+        Ok(DirEntryState{
+            file_name: file_name,
+            file_type: file_type,
+            size: size,
+            mtime: mtime,
+        })
     }
 }
 
