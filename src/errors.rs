@@ -29,7 +29,7 @@ pub fn io_to_iron(err: io::Error) -> IronError {
 }
 
 /// Generated when failed to convert `OsString` to `String`
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct BadString {
     desc: String,
 }
