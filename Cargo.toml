@@ -1,7 +1,7 @@
 [package]
 name = "staticdir"
 description = "Providing list of directory entries for Iron framework"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["franza <nico.franza@gmail.com>"]
 keywords = ["iron", "web", "http", "file", "static", "folder", "dir", "directory"]
 
