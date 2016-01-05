@@ -12,20 +12,52 @@ use errors;
 
 use filetime::FileTime;
 
+/// Provides list of directory contents in JSON format like
+///
+///```ignore
+/// [
+///   {
+///     "file_type": "File", // "File", "Dir" or "Symlink"
+///     "file_name": ".gitignore",
+///     "size": 7,
+///     "creation_time": null, // may be null on some Unix systems
+///     "last_modification_time": 1451939290,
+///     "last_access_time": 1451939309
+///   },
+///   {
+///     "file_type": "File",
+///     "file_name": "Cargo.toml",
+///     "size": 196,
+///     "creation_time": null,
+///     "last_modification_time": 1451939547,
+///     "last_access_time": 1451939547
+///   },
+///   {
+///     "file_type": "Dir",
+///     "file_name": "src",
+///     "size": 4096,
+///     "creation_time": null,
+///     "last_modification_time": 1451939462,
+///     "last_access_time": 1451939462
+///   }
+/// ]
+///```
+///
+/// Current and parent directories (`.` and `..`) are not included.
 pub struct AsJson;
 
 #[derive(RustcDecodable, RustcEncodable)]
-pub struct DirEntryState {
-    pub file_type: FileType,
-    pub file_name: String,
-    pub size: u64,
-    pub creation_time: Option<u64>,
-    pub last_modification_time: u64,
-    pub last_access_time: u64,
+struct DirEntryState {
+    file_type: FileType,
+    file_name: String,
+    size: u64,
+    creation_time: Option<u64>,
+    last_modification_time: u64,
+    last_access_time: u64,
 }
 
 #[derive(RustcDecodable, RustcEncodable, PartialEq, Eq, Debug)]
-pub enum FileType {
+enum FileType {
     File, Dir, Symlink
 }
 
@@ -68,6 +100,7 @@ impl DirEntryState {
     }
 }
 
+/// If failed to read metadata of a directory entry, such entry will not cause panic and will not be returned in resulting JSON
 impl ResponseStrategy for AsJson {
     fn make_response(&self, dir: ReadDir) -> IronResult<Response> {
         let entries: Vec<_> = dir

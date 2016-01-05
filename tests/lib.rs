@@ -16,13 +16,27 @@ use hyper::mime::{ Mime, TopLevel, SubLevel };
 
 use std::io::Read;
 use staticdir::{ StaticDir, AsJson };
-use staticdir::respond_with_dir::{ DirEntryState, FileType };
 
 use std::ops::Deref;
 
 use rustc_serialize::json;
 
 use staticfile::Static;
+
+#[derive(RustcDecodable, RustcEncodable)]
+pub struct DirEntryState {
+    pub file_type: FileType,
+    pub file_name: String,
+    pub size: u64,
+    pub creation_time: Option<u64>,
+    pub last_modification_time: u64,
+    pub last_access_time: u64,
+}
+
+#[derive(RustcDecodable, RustcEncodable, PartialEq, Eq, Debug)]
+pub enum FileType {
+    File, Dir, Symlink
+}
 
 fn assert_top_dir(entries: Vec<DirEntryState>) {
     assert_eq!(entries.len(), 4);
