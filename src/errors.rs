@@ -23,7 +23,7 @@ impl fmt::Display for NotADir {
 
 
 #[inline]
-pub fn status_by_err_code(err: &io::Error) -> Status {
+fn status_by_err_code(err: &io::Error) -> Status {
     const NOT_A_DIR_STATUS_CODE: i32 = 20;
 
     match err.raw_os_error() {
