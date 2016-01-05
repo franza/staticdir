@@ -21,10 +21,18 @@ impl fmt::Display for NotADir {
     }
 }
 
+const NOT_A_DIR_STATUS_CODE: i32 = 20;
+
 /// Maps `std::io::Error` to `iron::prelude::IronError`.
 #[inline]
 pub fn io_to_iron(err: io::Error) -> IronError {
     let status = match err.kind() {
+        io::ErrorKind::Other  => match err.raw_os_error() {
+            // Not a directory
+            Some(NOT_A_DIR_STATUS_CODE) => Status::NotFound,
+            _                           => Status::InternalServerError,
+        },
+
         io::ErrorKind::NotFound         => Status::NotFound,
         io::ErrorKind::PermissionDenied => Status::Forbidden,
         _                               => Status::InternalServerError,
