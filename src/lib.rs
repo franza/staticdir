@@ -13,6 +13,7 @@
 //! ```
 //! Because for different tasks different implementations of response may be required, this crate is designed to provide flexible behavior.
 //! By default, only JSON response is supported, but different it can be customized with `ResponseStrategy` trait.
+//! Here is how easily we can provide directory contents as HTML.
 //! # Examples
 //! ```no_run
 //! extern crate staticdir;

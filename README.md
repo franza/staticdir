@@ -1,5 +1,6 @@
 # staticdir
-Serving directory contents for [Iron](https://github.com/iron/iron) web-framework
+
+Serving directory contents for [Iron](https://github.com/iron/iron) web-framework. Documentation can be found [here](http://franza.github.io/staticdir/index.html).
 
 ## Purpose
 
