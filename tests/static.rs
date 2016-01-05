@@ -1,27 +1,9 @@
 extern crate staticdir;
 extern crate iron;
-extern crate hyper;
 extern crate mount;
 extern crate rustc_serialize;
 extern crate staticfile;
-
-use iron::prelude::*;
-
-use mount::Mount;
-
-use hyper::Client;
-use hyper::status;
-use hyper::header::{ ContentType };
-use hyper::mime::{ Mime, TopLevel, SubLevel };
-
-use std::io::Read;
-use staticdir::{ StaticDir, AsJson };
-
-use std::ops::Deref;
-
-use rustc_serialize::json;
-
-use staticfile::Static;
+extern crate iron_test;
 
 #[derive(RustcDecodable, RustcEncodable)]
 pub struct DirEntryState {
@@ -38,178 +20,120 @@ pub enum FileType {
     File, Dir, Symlink
 }
 
-fn assert_top_dir(entries: Vec<DirEntryState>) {
-    assert_eq!(entries.len(), 4);
+mod file {
 
-    assert_eq!(entries[0].file_name, "по-русски");
-    assert_eq!(entries[0].file_type, FileType::Dir);
-    assert!(entries[0].size > 0);
-    assert!(entries[0].last_modification_time > 0);
-    assert!(entries[0].last_access_time > 0);
-    //No tests for creation time since it's platform-specific
-    // assert!(entries[0].creation_time.is_none());
+    use iron::prelude::*;
+    use iron::headers::{ Headers, ContentType };
+    use iron::mime::{ Mime, TopLevel, SubLevel };
+    use iron::status;
+    use iron_test::{ request, ProjectBuilder, response };
+    use mount::Mount;
+    use rustc_serialize::json;
+    use std::ops::Deref;
+    use staticdir::{ StaticDir, AsJson };
+    use super::*;
 
-    assert_eq!(entries[1].file_name, "1.txt");
-    assert_eq!(entries[1].file_type, FileType::File);
-    assert!(entries[1].size > 0);
-    assert!(entries[1].last_modification_time > 0);
-    assert!(entries[1].last_access_time > 0);
+    #[test]
+    fn response_should_be_200() {
+        let p = ProjectBuilder::new("example").file("file1.html", "this is file1");
+        p.build();
 
-    assert_eq!(entries[2].file_name, "nested");
-    assert_eq!(entries[2].file_type, FileType::Dir);
-    assert!(entries[2].size > 0);
-    assert!(entries[2].last_modification_time > 0);
-    assert!(entries[2].last_access_time > 0);
+        let static_dir = StaticDir::new(p.root(), AsJson);
+        let res = request::get("http://localhost:3000/", Headers::new(), &static_dir).unwrap();
+        assert_eq!(res.status.unwrap(), status::Ok);
+    }
 
-    assert_eq!(entries[3].file_name, "has space");
-    assert_eq!(entries[3].file_type, FileType::Dir);
-    assert!(entries[3].size > 0);
-    assert!(entries[3].last_modification_time > 0);
-    assert!(entries[3].last_access_time > 0);
+    #[test]
+    fn response_should_be_json() {
+        let p = ProjectBuilder::new("example").file("file1.html", "this is file1");
+        p.build();
+
+        let static_dir = StaticDir::new(p.root(), AsJson);
+        let res = request::get("http://localhost:3000/", Headers::new(), &static_dir).unwrap();
+        let &Mime(ref top, ref sub, _) = res.headers.get::<ContentType>().unwrap().deref();
+        assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
+    }
+
+    #[test]
+    fn response_should_contain_file_entry() {
+        let p = ProjectBuilder::new("example").file("file1.html", "this is file1");
+        p.build();
+
+        let static_dir = StaticDir::new(p.root(), AsJson);
+        let res = request::get("http://localhost:3000/", Headers::new(), &static_dir).unwrap();
+        let body = response::extract_body_to_string(res);
+        let entries: Vec<DirEntryState> = json::decode(&body).unwrap();
+        let ref entry = entries[0];
+        assert_eq!(entry.file_name, "file1.html");
+        assert_eq!(entry.file_type, FileType::File);
+        assert!(entry.size > 0);
+        assert!(entry.last_modification_time > 0);
+        assert!(entry.last_access_time > 0);
+    }
+
+    #[test]
+    fn should_work_with_mount() {
+        let p = ProjectBuilder::new("example").file("file1.html", "this is file1");
+        p.build();
+
+        let static_dir = StaticDir::new(p.root(), AsJson);
+        let mut mount = Mount::new();
+        mount.mount("/mnt/", static_dir);
+        let res = request::get("http://localhost:3000/mnt", Headers::new(), &mount).unwrap();
+        assert_eq!(res.status.unwrap(), status::Ok);
+    }
 }
 
-#[test]
-fn handler_provides_json() {
-    let mut server = Iron::new(StaticDir::new("tests/mount", AsJson)).http("localhost:3000").unwrap();
+mod dir {
+    use iron::prelude::*;
+    use iron::headers::{ Headers, ContentType };
+    use iron::mime::{ Mime, TopLevel, SubLevel };
+    use iron::status;
+    use iron_test::{ request, ProjectBuilder, response };
+    use std::ops::Deref;
+    use staticdir::{ StaticDir, AsJson };
+    use staticfile::Static;
 
-    let client = Client::new();
-    let mut res = client.get("http://localhost:3000").send().unwrap();
-    let mut body = String::new();
-    res.read_to_string(&mut body).unwrap();
-    server.close().unwrap();
+    #[test]
+    fn should_work_with_trailing_slash() {
+        let p = ProjectBuilder::new("example").file("dir/file1.html", "this is file1");
+        p.build();
 
-    assert_eq!(res.status, status::StatusCode::Ok);
-    let &Mime(ref top, ref sub, _) = res.headers.get::<ContentType>().unwrap().deref();
-    assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
+        let static_dir = StaticDir::new(p.root(), AsJson);
+        let res = request::get("http://localhost:3000/dir/", Headers::new(), &static_dir).unwrap();
+        assert_eq!(res.status.unwrap(), status::Ok);
+    }
 
-    let entries: Vec<DirEntryState> = json::decode(&body).unwrap();
-    assert_top_dir(entries);
-}
+    #[test]
+    fn should_work_without_trailing_slash() {
+        let p = ProjectBuilder::new("example").file("dir/file1.html", "this is file1");
+        p.build();
 
-#[test]
-fn should_work_if_dir_has_funky_chars() {
-    let mut server = Iron::new(StaticDir::new("tests/mount", AsJson)).http("localhost:3001").unwrap();
+        let static_dir = StaticDir::new(p.root(), AsJson);
+        let res = request::get("http://localhost:3000/dir", Headers::new(), &static_dir).unwrap();
+        assert_eq!(res.status.unwrap(), status::Ok);
+    }
 
-    let client = Client::new();
-    let mut res = client.get("http://localhost:3001/has space").send().unwrap();
-    let mut body = String::new();
-    res.read_to_string(&mut body).unwrap();
-    server.close().unwrap();
+    #[test]
+    fn should_work_with_static_file() {
+        let p = ProjectBuilder::new("example")
+            .file("dir/file1.html", "this is file");
+        p.build();
 
-    assert_eq!(res.status, status::StatusCode::Ok);
-    let &Mime(ref top, ref sub, _) = res.headers.get::<ContentType>().unwrap().deref();
-    assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
+        let handle_statics = {
+            let root = p.root();
+            let mut chain = Chain::new(Static::new(root));
+            chain.link_after(StaticDir::new(root, AsJson));
+            chain
+        };
 
-    let entries: Vec<DirEntryState> = json::decode(&body).unwrap();
-    assert_eq!(entries.len(), 0);
-}
+        let res = request::get("http://localhost:3000/dir/file1.html", Headers::new(), &handle_statics).unwrap();
+        assert_eq!(res.status.unwrap(), status::Ok);
+        assert_eq!(response::extract_body_to_string(res), "this is file");
 
-#[test]
-fn should_see_nested_files() {
-    let mut server = Iron::new(StaticDir::new("tests/mount", AsJson)).http("localhost:3002").unwrap();
-
-    let client = Client::new();
-    let mut res = client.get("http://localhost:3002/nested").send().unwrap();
-    let mut body = String::new();
-    res.read_to_string(&mut body).unwrap();
-    server.close().unwrap();
-
-    assert_eq!(res.status, status::StatusCode::Ok);
-    let &Mime(ref top, ref sub, _) = res.headers.get::<ContentType>().unwrap().deref();
-    assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
-
-    let entries: Vec<DirEntryState> = json::decode(&body).unwrap();
-    assert_eq!(entries.len(), 1);
-    assert_eq!(entries[0].file_type, FileType::File);
-    assert_eq!(entries[0].file_name, "2.txt");
-}
-
-#[test]
-fn should_work_with_mount() {
-    let mut mount = Mount::new();
-    mount.mount("/mnt/", StaticDir::new("tests/mount", AsJson));
-    let mut server = Iron::new(mount).http("localhost:3003").unwrap();
-
-    let client = Client::new();
-    let mut res = client.get("http://localhost:3003/mnt").send().unwrap();
-    let mut body = String::new();
-    res.read_to_string(&mut body).unwrap();
-    server.close().unwrap();
-
-    assert_eq!(res.status, status::StatusCode::Ok);
-    let &Mime(ref top, ref sub, _) = res.headers.get::<ContentType>().unwrap().deref();
-    assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
-
-    let entries: Vec<DirEntryState> = json::decode(&body).unwrap();
-    assert_top_dir(entries);
-}
-
-#[test]
-fn should_work_with_static_file_and_trailing_slash() {
-    let handle_statics = {
-        let root = "tests/mount";
-        let mut chain = Chain::new(Static::new(root));
-        chain.link_after(StaticDir::new(root, AsJson));
-        chain
-    };
-
-    let mut mount = Mount::new();
-    mount.mount("/mnt/", handle_statics);
-    let mut server = Iron::new(mount).http("localhost:3004").unwrap();
-
-    let client = Client::new();
-    let mut dir_res = client.get("http://localhost:3004/mnt/").send().unwrap();
-    let mut dir_entries = String::new();
-    dir_res.read_to_string(&mut dir_entries).unwrap();
-
-    let mut file_res = client.get("http://localhost:3004/mnt/1.txt").send().unwrap();
-    let mut file_body = String::new();
-    file_res.read_to_string(&mut file_body).unwrap();
-    server.close().unwrap();
-
-    assert_eq!(file_res.status, status::StatusCode::Ok);
-    assert_eq!(file_body, "file 1.txt\n");
-
-    assert_eq!(dir_res.status, status::StatusCode::Ok);
-
-    let &Mime(ref top, ref sub, _) = dir_res.headers.get::<ContentType>().unwrap().deref();
-    assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
-
-    let entries: Vec<DirEntryState> = json::decode(&dir_entries).unwrap();
-    assert_top_dir(entries);
-}
-
-#[test]
-fn should_work_with_static_file_and_no_trailing_slash() {
-    let handle_statics = {
-        let root = "tests/mount";
-        let mut chain = Chain::new(Static::new(root));
-        chain.link_after(StaticDir::new(root, AsJson));
-        chain
-    };
-
-    let mut mount = Mount::new();
-    mount.mount("/mnt/", handle_statics);
-    let mut server = Iron::new(mount).http("localhost:3005").unwrap();
-
-    let client = Client::new();
-    let mut dir_res = client.get("http://localhost:3005/mnt").send().unwrap();
-    let mut dir_entries = String::new();
-    dir_res.read_to_string(&mut dir_entries).unwrap();
-
-    let mut file_res = client.get("http://localhost:3005/mnt/1.txt").send().unwrap();
-    let mut file_body = String::new();
-    file_res.read_to_string(&mut file_body).unwrap();
-    server.close().unwrap();
-
-    assert_eq!(file_res.status, status::StatusCode::Ok);
-    assert_eq!(file_body, "file 1.txt\n");
-
-    assert_eq!(dir_res.status, status::StatusCode::Ok);
-
-    let &Mime(ref top, ref sub, _) = dir_res.headers.get::<ContentType>().unwrap().deref();
-    assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
-
-    let entries: Vec<DirEntryState> = json::decode(&dir_entries).unwrap();
-    assert_top_dir(entries);
+        let res = request::get("http://localhost:3000/dir/", Headers::new(), &handle_statics).unwrap();
+        assert_eq!(res.status.unwrap(), status::Ok);
+        let &Mime(ref top, ref sub, _) = res.headers.get::<ContentType>().unwrap().deref();
+        assert_eq!((top, sub), (&TopLevel::Application, &SubLevel::Json));
+    }
 }

@@ -13,5 +13,5 @@ filetime = "0.1.9"
 
 [dev-dependencies]
 staticfile = "*"
-hyper = "*"
 mount = { git = "https://github.com/iron/mount.git" }
+iron-test = "0.2"
