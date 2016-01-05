@@ -30,7 +30,8 @@ mod file {
     use mount::Mount;
     use rustc_serialize::json;
     use std::ops::Deref;
-    use staticdir::{ StaticDir, AsJson };
+    use std::fs::ReadDir;
+    use staticdir::*;
     use super::*;
 
     #[test]
@@ -81,6 +82,38 @@ mod file {
         mount.mount("/mnt/", static_dir);
         let res = request::get("http://localhost:3000/mnt", Headers::new(), &mount).unwrap();
         assert_eq!(res.status.unwrap(), status::Ok);
+    }
+
+    #[test]
+    fn should_support_custom_strategies() {
+        struct AsHtml;
+
+        fn build_html(dir: ReadDir) -> String {
+            let mut html = String::new();
+            for entry in dir {
+                let entry = entry.unwrap();
+                html = format!("{}<li>{}</li>", html, entry.file_name().into_string().unwrap());
+            }
+            format!("<ul>{}</ul>", html)
+        }
+
+        impl ResponseStrategy for AsHtml {
+            fn make_response(&self, dir: ReadDir) -> IronResult<Response> {
+                let html = build_html(dir);
+                let content_type = "text/html; charset=utf-8".parse::<Mime>().unwrap();
+                Ok(Response::with((status::Ok, html, content_type)))
+            }
+        }
+
+        let p = ProjectBuilder::new("example")
+            .file("file1.html", "this is file1")
+            .file("file2.html", "this is file2");
+        p.build();
+
+        let static_dir = StaticDir::new(p.root(), AsHtml);
+        let res = request::get("http://localhost:3000/", Headers::new(), &static_dir).unwrap();
+        let body = response::extract_body_to_string(res);
+        assert_eq!(body, "<ul><li>file2.html</li><li>file1.html</li></ul>");
     }
 }
 
