@@ -7,42 +7,25 @@ use std::io;
 use iron::status::Status;
 use iron::prelude::IronError;
 
-/// Generated when target entry is not a directory, i.e. a file or symlink.
-#[derive(Debug)]
-pub struct NotADir;
-
-impl Error for NotADir {
-    fn description(&self) -> &str { "Requested entry is file" }
-}
-
-impl fmt::Display for NotADir {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        f.write_str(self.description())
-    }
-}
-
-
 #[inline]
-fn status_by_err_code(err: &io::Error) -> Status {
+fn iron_err_by_err_code(err: io::Error) -> IronError {
     const NOT_A_DIR_STATUS_CODE: i32 = 20;
 
     match err.raw_os_error() {
-        Some(NOT_A_DIR_STATUS_CODE) => Status::NotFound,
-        _                           => Status::InternalServerError,
+        Some(NOT_A_DIR_STATUS_CODE) => IronError::new(err, Status::NotFound),
+        _                           => IronError::new(err, Status::InternalServerError),
     }
 }
 
-/// Maps `std::io::Error` to `iron::prelude::IronError`.
+/// Maps `std::io::Error` to `iron::prelude::IronError`. This function may be useful when dealing with IO errors while implementing custom `ResponseStrategy`.
 #[inline]
 pub fn io_to_iron(err: io::Error) -> IronError {
-    let status = match err.kind() {
-
-        io::ErrorKind::NotFound         => Status::NotFound,
-        io::ErrorKind::PermissionDenied => Status::Forbidden,
-        io::ErrorKind::Other            => status_by_err_code(&err),
-        _                               => Status::InternalServerError,
-    };
-    IronError::new(err, status)
+    match err.kind() {
+        io::ErrorKind::NotFound         => IronError::new(err, Status::NotFound),
+        io::ErrorKind::PermissionDenied => IronError::new(err, Status::Forbidden),
+        io::ErrorKind::Other            => iron_err_by_err_code(err),
+        _                               => IronError::new(err, Status::InternalServerError),
+    }
 }
 
 /// Generated when failed to convert `OsString` to `String`

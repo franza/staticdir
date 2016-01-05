@@ -2,11 +2,11 @@ use iron::{ Handler, AfterMiddleware };
 use iron::prelude::*;
 use iron::status::Status;
 
-use std::path::{ PathBuf, Path };
+use std::path::{ PathBuf };
 use std::fs::{ metadata, read_dir, ReadDir };
 use std::any::Any;
 
-use errors::{ NotADir, io_to_iron };
+use errors::{ io_to_iron };
 
 use url::percent_encoding::percent_decode;
 
@@ -32,13 +32,15 @@ impl<T> StaticDir<T> {
 }
 
 impl<T> StaticDir<T> where T: Send + Sync + Any + ResponseStrategy {
-    fn provide_dir<P>(&self, path: P) -> IronResult<Response> where P: AsRef<Path> {
+    fn provide_dir<P>(&self, path: P) -> IronResult<Response> where P: Into<PathBuf> {
+        let path = add_trailing_slash(path);
         metadata(&path)
             .map_err(io_to_iron)
             .and_then(|meta| {
+                // trailing slash is added, so expecting only is_dir case
                 match meta.is_dir() {
                     true  => read_dir(&path).map_err(io_to_iron),
-                    false => Err(IronError::new(NotADir, Status::BadRequest)),
+                    false => unreachable!(),
                 }
             })
             .and_then(|dir| self.response_strategy.make_response(dir))
@@ -50,6 +52,15 @@ fn extend_req_path<P>(request: &Request, root_path: P) -> PathBuf where P: Into<
     let mut path = root_path.into();
     let decoded_req_path = request.url.path.iter().map(|part| String::from_utf8(percent_decode(part.as_bytes())).unwrap());
     path.extend(decoded_req_path);
+    path
+}
+
+#[inline]
+fn add_trailing_slash<P>(path: P) -> PathBuf where P: Into<PathBuf> {
+    let mut path = path.into();
+    // rust-url automatically turns an empty string in the last
+    // slot in the path into a trailing slash.
+    path.push("");
     path
 }
 

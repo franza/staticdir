@@ -158,13 +158,13 @@ fn should_work_with_static_file() {
 }
 
 #[test]
-fn should_return_400_if_referred_to_non_existent_dir_without_trailing_slash() {
+fn should_return_404_if_referred_to_non_existent_dir_without_trailing_slash() {
     let p = ProjectBuilder::new("example").file("file1", "this is file1");
     p.build();
 
     let static_dir = StaticDir::new(p.root(), AsJson);
     let err = request::get("http://localhost:3000/file1", Headers::new(), &static_dir).unwrap_err();
-    assert_eq!(err.response.status.unwrap(), status::BadRequest);
+    assert_eq!(err.response.status.unwrap(), status::NotFound);
 }
 
 #[test]
