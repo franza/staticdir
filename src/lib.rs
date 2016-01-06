@@ -1,5 +1,5 @@
 //! Serving contents of static directory.
-//! # Examples
+//!
 //! ```no_run
 //! extern crate staticdir;
 //! extern crate iron;
@@ -11,10 +11,42 @@
 //!     Iron::new(StaticDir::new(".", AsJson)).http("localhost:3000").unwrap();
 //! }
 //! ```
+//!
+//! This will provide JSON similar to this:
+//!
+//!```ignore
+//! [
+//!   {
+//!     "file_type": "File", // "File", "Dir" or "Symlink"
+//!     "file_name": ".gitignore",
+//!     "size": 7,
+//!     "creation_time": null, // may be null on some Unix systems
+//!     "last_modification_time": 1451939290,
+//!     "last_access_time": 1451939309
+//!   },
+//!   {
+//!     "file_type": "File",
+//!     "file_name": "Cargo.toml",
+//!     "size": 196,
+//!     "creation_time": null,
+//!     "last_modification_time": 1451939547,
+//!     "last_access_time": 1451939547
+//!   },
+//!   {
+//!     "file_type": "Dir",
+//!     "file_name": "src",
+//!     "size": 4096,
+//!     "creation_time": null,
+//!     "last_modification_time": 1451939462,
+//!     "last_access_time": 1451939462
+//!   }
+//! ]
+//!```
+//!
 //! Because for different tasks different implementations of response may be required, this crate is designed to provide flexible behavior.
 //! By default, only JSON response is supported, but different it can be customized with `ResponseStrategy` trait.
 //! Here is how easily we can provide directory contents as HTML.
-//! # Examples
+//!
 //! ```no_run
 //! extern crate staticdir;
 //! extern crate iron;
@@ -46,6 +78,31 @@
 //!
 //! fn main() {
 //!     Iron::new(StaticDir::new(".", AsHtml)).http("localhost:3000").unwrap();
+//! }
+//! ```
+//!
+//! `StaticDir` implements `Handler` and `AfterMiddleware` so can be combined with other plugins of `iron` framework like `staticfile` or `mount`:
+//!
+//! ```no_run
+//! extern crate staticdir;
+//! extern crate iron;
+//! extern crate mount;
+//! extern crate staticfile;
+//!
+//! use iron::prelude::*;
+//! use mount::Mount;
+//! use staticdir::{ StaticDir, AsJson };
+//! use staticfile::Static;
+//!
+//!
+//! fn main() {
+//!     let root = "tests/mount";
+//!     let mut handle_statics = Chain::new(Static::new(root));
+//!     handle_statics.link_after(StaticDir::new(root, AsJson));
+//!
+//!     let mut mount = Mount::new();
+//!     mount.mount("/static/", handle_statics);
+//!     let mut server = Iron::new(mount).http("localhost:3000").unwrap();
 //! }
 //! ```
 
